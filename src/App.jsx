@@ -3,12 +3,18 @@ import {
   addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc
 } from 'firebase/firestore'
 import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from 'firebase/auth'
+import {
   Activity, AlertCircle, Check, CheckCircle2, ChevronDown, CirclePlus, Cloud,
   Database, Edit3, ExternalLink, Filter, LayoutDashboard, LoaderCircle, Menu,
   MoreHorizontal, Pencil, Plus, RefreshCw, Search, ShieldAlert, Smartphone,
   Trash2, Wifi, X
 } from 'lucide-react'
-import { db, firebaseConfigured } from './firebase'
+import { db, auth, firebaseConfigured } from './firebase'
 
 const emptyForm = { nom: '', descripcio: '', categoria: 'General', data: new Date().toISOString().slice(0, 10), actiu: true }
 
@@ -25,23 +31,114 @@ export default function App() {
   const [saving, setSaving] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const [notice, setNotice] = useState('')
+  const [user, setUser] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authMode, setAuthMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authBusy, setAuthBusy] = useState(false)
 
   useEffect(() => {
-    if (!firebaseConfigured) return
-    const q = query(collection(db, 'proves'), orderBy('creatEl', 'desc'))
-    const unsubscribe = onSnapshot(q, snapshot => {
-      setRecords(snapshot.docs.map(item => ({ id: item.id, ...item.data() })))
-      setConnection('connected')
-      setError('')
-    }, err => {
-      setConnection('error')
-      setError(err.code === 'permission-denied'
-        ? 'Accés denegat. Revisa les regles de seguretat de Firestore.'
-        : err.message)
-    })
-    return unsubscribe
-  }, [])
+  if (!firebaseConfigured || !auth) {
+    setAuthLoading(false)
+    return
+  }
 
+  const unsubscribe = onAuthStateChanged(auth, currentUser => {
+    setUser(currentUser)
+    setAuthLoading(false)
+  })
+
+  return unsubscribe
+}, [])
+
+useEffect(() => {
+  if (!firebaseConfigured || !auth) {
+    setAuthLoading(false)
+    return
+  }
+
+  const unsubscribe = onAuthStateChanged(auth, currentUser => {
+    setUser(currentUser)
+    setAuthLoading(false)
+  })
+
+  return unsubscribe
+}, [])
+
+useEffect(() => {
+  if (!firebaseConfigured || !user) {
+    setRecords([])
+    setConnection('missing')
+    return
+  }
+
+  setConnection('connecting')
+
+  const q = query(
+    collection(db, 'proves'),
+    orderBy('creatEl', 'desc')
+  )
+
+  const unsubscribe = onSnapshot(q, snapshot => {
+    setRecords(
+      snapshot.docs.map(item => ({
+        id: item.id,
+        ...item.data()
+      }))
+    )
+    setConnection('connected')
+    setError('')
+  }, err => {
+    setConnection('error')
+    setError(
+      err.code === 'permission-denied'
+        ? 'Accés denegat. Revisa les regles de seguretat de Firestore.'
+        : err.message
+    )
+  })
+
+  return unsubscribe
+}, [user])
+async function handleAuth(e) {
+  e.preventDefault()
+  setError('')
+  setAuthBusy(true)
+
+  try {
+    if (authMode === 'register') {
+      await createUserWithEmailAndPassword(auth, email, password)
+      setNotice('Compte creat correctament.')
+    } else {
+      await signInWithEmailAndPassword(auth, email, password)
+      setNotice('Sessió iniciada correctament.')
+    }
+
+    setPassword('')
+  } catch (err) {
+    const messages = {
+      'auth/email-already-in-use': 'Aquest correu ja està registrat.',
+      'auth/invalid-email': 'El correu electrònic no és vàlid.',
+      'auth/weak-password': 'La contrasenya ha de tenir almenys 6 caràcters.',
+      'auth/invalid-credential': 'Correu o contrasenya incorrectes.',
+      'auth/user-not-found': 'No existeix cap compte amb aquest correu.',
+      'auth/wrong-password': 'La contrasenya és incorrecta.'
+    }
+
+    setError(messages[err.code] || err.message)
+  } finally {
+    setAuthBusy(false)
+  }
+}
+
+async function handleLogout() {
+  try {
+    await signOut(auth)
+    setNotice('Sessió tancada correctament.')
+  } catch (err) {
+    setError(err.message)
+  }
+}
   const categories = useMemo(() => ['Totes', ...new Set(records.map(r => r.categoria || 'General'))], [records])
   const filtered = useMemo(() => records.filter(r => {
     const text = `${r.nom || ''} ${r.descripcio || ''} ${r.categoria || ''}`.toLowerCase()
@@ -94,7 +191,139 @@ export default function App() {
     { id: 'dashboard', label: 'Resum', icon: LayoutDashboard },
     { id: 'records', label: 'Registres', icon: Database },
   ]
+if (authLoading) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      fontFamily: 'Arial'
+    }}>
+      Comprovant la sessió...
+    </div>
+  )
+}
 
+if (!user) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: '#f3f5f9',
+      fontFamily: 'Arial',
+      padding: '20px'
+    }}>
+      <form
+        onSubmit={handleAuth}
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          background: 'white',
+          padding: '32px',
+          borderRadius: '16px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.08)'
+        }}
+      >
+        <h1 style={{ marginTop: 0 }}>
+          {authMode === 'login' ? 'Iniciar sessió' : 'Crear compte'}
+        </h1>
+
+        <p style={{ color: '#64748b' }}>
+          Accedeix a la teva aplicació
+        </p>
+
+        <label>Correu electrònic</label>
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            padding: '12px',
+            marginTop: '6px',
+            marginBottom: '18px',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px'
+          }}
+        />
+
+        <label>Contrasenya</label>
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          minLength={6}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            padding: '12px',
+            marginTop: '6px',
+            marginBottom: '18px',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px'
+          }}
+        />
+
+        {error && (
+          <p style={{ color: '#dc2626' }}>{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={authBusy}
+          style={{
+            width: '100%',
+            padding: '13px',
+            background: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          {authBusy
+            ? 'Un moment...'
+            : authMode === 'login'
+              ? 'Entrar'
+              : 'Registrar-me'}
+        </button>
+
+        <p style={{ textAlign: 'center', marginTop: '22px' }}>
+          {authMode === 'login'
+            ? 'Encara no tens compte?'
+            : 'Ja tens un compte?'}
+        </p>
+
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMode(authMode === 'login' ? 'register' : 'login')
+            setError('')
+          }}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'transparent',
+            color: '#2563eb',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          {authMode === 'login'
+            ? 'Crear un compte nou'
+            : 'Tornar a iniciar sessió'}
+        </button>
+      </form>
+    </div>
+  )
+}
   return <div className="app-shell">
     <aside className={`sidebar ${mobileMenu ? 'open' : ''}`}>
       <div className="brand"><div className="brand-mark"><Database size={21}/></div><div><strong>Firestore Lab</strong><small>Entorn de proves</small></div></div>
@@ -113,7 +342,29 @@ export default function App() {
       <header className="topbar">
         <button className="icon-button mobile-only" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Obrir menú"><Menu size={20}/></button>
         <div className="breadcrumb">Espai de treball <span>/</span> <strong>{activeTab === 'dashboard' ? 'Resum' : 'Registres'}</strong></div>
-        <div className="topbar-right"><div className={`connection-pill ${connection}`}><span className="status-dot"></span>{connection === 'connected' ? 'En línia' : connection === 'connecting' ? 'Connectant' : connection === 'missing' ? 'Sense configurar' : 'Error'}</div><div className="avatar">FL</div></div>
+        <div className="topbar-right"><div className={`connection-pill ${connection}`}><span className="status-dot"></span>{connection === 'connected' ? 'En línia' : connection === 'connecting' ? 'Connectant' : connection === 'missing' ? 'Sense configurar' : 'Error'}</div><div style={{
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px'
+}}>
+  <span style={{ fontSize: '13px', color: '#64748b' }}>
+    {user.email}
+  </span>
+
+  <button
+    type="button"
+    onClick={handleLogout}
+    style={{
+      padding: '9px 14px',
+      border: '1px solid #cbd5e1',
+      borderRadius: '8px',
+      background: 'white',
+      cursor: 'pointer'
+    }}
+  >
+    Tancar sessió
+  </button>
+</div></div>
       </header>
 
       <div className="content">
