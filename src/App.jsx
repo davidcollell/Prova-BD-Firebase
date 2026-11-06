@@ -16,7 +16,19 @@ import {
 } from 'lucide-react'
 import { db, auth, firebaseConfigured } from './firebase'
 
-const emptyForm = { nom: '', descripcio: '', categoria: 'General', data: new Date().toISOString().slice(0, 10), actiu: true }
+const emptyForm = {
+  nom: '',
+  descripcio: '',
+  categoria: 'General',
+  estat: 'Pendent',
+  prioritat: 'Mitjana',
+  dataInici: new Date().toISOString().slice(0, 10),
+  dataFinal: '',
+  responsable: '',
+  observacions: '',
+  data: new Date().toISOString().slice(0, 10),
+  actiu: true
+}
 
 export default function App() {
   const [records, setRecords] = useState([])
@@ -52,19 +64,7 @@ export default function App() {
   return unsubscribe
 }, [])
 
-useEffect(() => {
-  if (!firebaseConfigured || !auth) {
-    setAuthLoading(false)
-    return
-  }
 
-  const unsubscribe = onAuthStateChanged(auth, currentUser => {
-    setUser(currentUser)
-    setAuthLoading(false)
-  })
-
-  return unsubscribe
-}, [])
 
 useEffect(() => {
   if (!firebaseConfigured || !user) {
@@ -154,11 +154,18 @@ async function handleLogout() {
   function openEdit(record) {
     setEditing(record.id)
     setForm({
-      nom: record.nom || '', descripcio: record.descripcio || '',
-      categoria: record.categoria || 'General',
-      data: record.data || new Date().toISOString().slice(0, 10),
-      actiu: Boolean(record.actiu)
-    })
+  nom: record.nom || '',
+  descripcio: record.descripcio || '',
+  categoria: record.categoria || 'General',
+  estat: record.estat || 'Pendent',
+  prioritat: record.prioritat || 'Mitjana',
+  dataInici: record.dataInici || record.data || '',
+  dataFinal: record.dataFinal || '',
+  responsable: record.responsable || '',
+  observacions: record.observacions || '',
+  data: record.data || new Date().toISOString().slice(0, 10),
+  actiu: Boolean(record.actiu)
+})
     setModalOpen(true)
   }
   async function saveRecord(e) {
@@ -166,7 +173,19 @@ async function handleLogout() {
     if (!form.nom.trim()) return
     setSaving(true); setError('')
     try {
-      const payload = { ...form, nom: form.nom.trim(), descripcio: form.descripcio.trim(), categoria: form.categoria.trim() || 'General', actualitzatEl: serverTimestamp() }
+      const payload = {
+  ...form,
+  nom: form.nom.trim(),
+  descripcio: form.descripcio.trim(),
+  categoria: form.categoria.trim() || 'General',
+  estat: form.estat || 'Pendent',
+  prioritat: form.prioritat || 'Mitjana',
+  dataInici: form.dataInici || '',
+  dataFinal: form.dataFinal || '',
+  responsable: (form.responsable || '').trim(),
+  observacions: (form.observacions || '').trim(),
+  actualitzatEl: serverTimestamp()
+}
       if (editing) await updateDoc(doc(db, 'proves', editing), payload)
       else await addDoc(collection(db, 'proves'), { ...payload, creatEl: serverTimestamp() })
       setModalOpen(false)
@@ -393,20 +412,130 @@ if (!user) {
           <div className="page-heading"><div><div className="eyebrow">BASE DE DADES / PROVES</div><h1>Registres</h1><p>Gestiona els documents de la col·lecció <code>proves</code>.</p></div><button className="primary-button" onClick={openNew} disabled={!firebaseConfigured}><Plus size={17}/> Nou registre</button></div>
           <section className="panel table-panel">
             <div className="toolbar"><div className="search-box"><Search size={17}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca registres..."/></div><div className="filter-box"><Filter size={16}/><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>{categories.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></div><span className="results-count">{filtered.length} resultats</span></div>
-            <div className="table-wrap"><table><thead><tr><th>NOM</th><th>CATEGORIA</th><th>DATA</th><th>ESTAT</th><th className="actions-head">ACCIONS</th></tr></thead><tbody>
-              {filtered.map(r => <tr key={r.id}><td><div className="table-name"><div className="record-avatar small">{(r.nom || '?').slice(0,1).toUpperCase()}</div><div><strong>{r.nom}</strong><span>{r.descripcio || 'Sense descripció'}</span></div></div></td><td><span className="category-tag">{r.categoria || 'General'}</span></td><td>{r.data || '—'}</td><td><button className={`state-tag ${r.actiu ? 'active' : 'inactive'} state-button`} onClick={() => toggleActive(r)}>{r.actiu ? 'Actiu' : 'Inactiu'}</button></td><td><div className="row-actions"><button className="icon-button" onClick={() => openEdit(r)} title="Editar"><Edit3 size={16}/></button><button className="icon-button delete-button" onClick={() => removeRecord(r)} title="Eliminar"><Trash2 size={16}/></button></div></td></tr>)}
-            </tbody></table>{filtered.length === 0 && <EmptyState onAdd={openNew} disabled={!firebaseConfigured} isFiltered={records.length > 0}/>}</div>
-          </section>
-          <div className="table-foot"><span><span className="status-dot connected"></span> Dades sincronitzades en temps real</span><span>Col·lecció: <code>proves</code></span></div>
-        </>}
+            <div className="table-wrap"><table><thead><tr><th>NOM</th><th>CATEGORIA</th>
+<th>ESTAT</th>
+<th>PRIORITAT</th>
+<th>RESPONSABLE</th>
+<th>DATA INICI</th>
+<th>ACTIU</th>
+<th className="actions-head">ACCIONS</th></tr></thead><tbody>
+              {filtered.map(r => (
+  <tr key={r.id}>
+    <td>
+      <div className="table-name">
+        <div className="record-avatar small">
+          {(r.nom || '?').slice(0,1).toUpperCase()}
+        </div>
+        <div>
+          <strong>{r.nom}</strong>
+          <span>{r.descripcio || 'Sense descripció'}</span>
+        </div>
       </div>
-    </main>
+    </td>
+
+    <td>
+      <span className="category-tag">{r.categoria || 'General'}</span>
+    </td>
+
+    <td>{r.estat || 'Pendent'}</td>
+
+    <td>{r.prioritat || 'Mitjana'}</td>
+
+    <td>{r.responsable || '—'}</td>
+
+    <td>{r.dataInici || r.data || '—'}</td>
+
+    <td>
+      <button
+        className={`state-tag ${r.actiu ? 'active' : 'inactive'} state-button`}
+        onClick={() => toggleActive(r)}
+      >
+        {r.actiu ? 'Actiu' : 'Inactiu'}
+      </button>
+    </td>
+
+    <td>
+      <div className="row-actions">
+        <button className="icon-button" onClick={() => openEdit(r)} title="Editar">
+          <Edit3 size={16}/>
+        </button>
+        <button className="icon-button delete-button" onClick={() => removeRecord(r)} title="Eliminar">
+          <Trash2 size={16}/>
+        </button>
+      </div>
+    </td>
+  </tr>
+))}
+</tbody>
+</table>
+</div>
+</section>
 
     {modalOpen && <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) setModalOpen(false)}}><form className="modal" onSubmit={saveRecord}>
       <div className="modal-head"><div><div className="eyebrow">{editing ? 'MODIFICAR DOCUMENT' : 'NOU DOCUMENT'}</div><h2>{editing ? 'Editar registre' : 'Crear registre'}</h2></div><button type="button" className="icon-button" onClick={() => setModalOpen(false)}><X size={19}/></button></div>
-      <label>Nom <span>*</span><input autoFocus required maxLength="100" value={form.nom} onChange={e => setForm({...form, nom:e.target.value})} placeholder="Ex. Prova de connexió"/></label>
-      <label>Descripció<textarea rows="3" maxLength="500" value={form.descripcio} onChange={e => setForm({...form, descripcio:e.target.value})} placeholder="Afegeix una descripció..."/></label>
-      <div className="form-row"><label>Categoria<input maxLength="60" value={form.categoria} onChange={e => setForm({...form, categoria:e.target.value})} placeholder="General"/></label><label>Data<input type="date" value={form.data} onChange={e => setForm({...form, data:e.target.value})}/></label></div>
+      <label>Nom <span>*</span>
+  <input autoFocus required maxLength="100"
+    value={form.nom}
+    onChange={e => setForm({...form, nom:e.target.value})}
+    placeholder="Nom del registre"/>
+</label>
+
+<label>Descripció
+  <textarea rows="3" maxLength="500"
+    value={form.descripcio}
+    onChange={e => setForm({...form, descripcio:e.target.value})}
+    placeholder="Afegeix una descripció..."/>
+</label>
+
+<div className="form-row">
+  <label>Categoria
+    <input maxLength="60" value={form.categoria}
+      onChange={e => setForm({...form, categoria:e.target.value})}
+      placeholder="General"/>
+  </label>
+  <label>Estat
+    <select value={form.estat}
+      onChange={e => setForm({...form, estat:e.target.value})}>
+      <option value="Actiu">Actiu</option>
+      <option value="Pendent">Pendent</option>
+      <option value="Finalitzat">Finalitzat</option>
+    </select>
+  </label>
+</div>
+
+<div className="form-row">
+  <label>Prioritat
+    <select value={form.prioritat}
+      onChange={e => setForm({...form, prioritat:e.target.value})}>
+      <option value="Baixa">Baixa</option>
+      <option value="Mitjana">Mitjana</option>
+      <option value="Alta">Alta</option>
+    </select>
+  </label>
+  <label>Responsable
+    <input value={form.responsable}
+      onChange={e => setForm({...form, responsable:e.target.value})}
+      placeholder="Nom del responsable"/>
+  </label>
+</div>
+
+<div className="form-row">
+  <label>Data d'inici
+    <input type="date" value={form.dataInici}
+      onChange={e => setForm({...form, dataInici:e.target.value})}/>
+  </label>
+  <label>Data de finalització
+    <input type="date" value={form.dataFinal}
+      onChange={e => setForm({...form, dataFinal:e.target.value})}/>
+  </label>
+</div>
+
+<label>Observacions
+  <textarea rows="3" maxLength="1000"
+    value={form.observacions}
+    onChange={e => setForm({...form, observacions:e.target.value})}
+    placeholder="Afegeix observacions..."/>
+</label>
       <label className="toggle-label"><span>Registre actiu</span><button type="button" className={`toggle ${form.actiu ? 'on' : ''}`} onClick={() => setForm({...form, actiu:!form.actiu})}><span/></button></label>
       <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setModalOpen(false)}>Cancel·lar</button><button className="primary-button" disabled={saving || !firebaseConfigured}>{saving ? <><LoaderCircle className="spin" size={17}/> Desant...</> : <><Check size={17}/> {editing ? 'Guardar canvis' : 'Crear registre'}</>}</button></div>
     </form></div>}
