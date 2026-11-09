@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc
+  addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where
 } from 'firebase/firestore'
 import {
   createUserWithEmailAndPassword,
@@ -75,7 +75,10 @@ useEffect(() => {
 
   setConnection('connecting')
 
-  const q = collection(db, 'proves')
+  const q = query(
+  collection(db, 'proves'),
+  where('propietari', '==', user.uid)
+)
 
   const unsubscribe = onSnapshot(q, snapshot => {
     setRecords(
@@ -191,7 +194,11 @@ async function handleLogout() {
   actualitzatEl: serverTimestamp()
 }
       if (editing) await updateDoc(doc(db, 'proves', editing), payload)
-      else await addDoc(collection(db, 'proves'), { ...payload, creatEl: serverTimestamp() })
+      else await addDoc(collection(db, 'proves'), {
+  ...payload,
+  propietari: user.uid,
+  creatEl: serverTimestamp()
+})
       setModalOpen(false)
       setNotice(editing ? 'Registre actualitzat correctament.' : 'Registre creat correctament.')
       setTimeout(() => setNotice(''), 3500)
