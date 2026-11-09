@@ -75,18 +75,21 @@ useEffect(() => {
 
   setConnection('connecting')
 
-  const q = query(
-    collection(db, 'proves'),
-    orderBy('creatEl', 'desc')
-  )
+  const q = collection(db, 'proves')
 
   const unsubscribe = onSnapshot(q, snapshot => {
     setRecords(
-      snapshot.docs.map(item => ({
-        id: item.id,
-        ...item.data()
-      }))
-    )
+  snapshot.docs
+    .map(item => ({
+      id: item.id,
+      ...item.data()
+    }))
+    .sort((a, b) => {
+      const dataA = a.creatEl?.toMillis?.() || 0
+      const dataB = b.creatEl?.toMillis?.() || 0
+      return dataB - dataA
+    })
+)
     setConnection('connected')
     setError('')
   }, err => {
@@ -142,10 +145,11 @@ async function handleLogout() {
   const categories = useMemo(() => ['Totes', ...new Set(records.map(r => r.categoria || 'General'))], [records])
   const filtered = useMemo(() => records.filter(r => {
     const text = `${r.nom || ''} ${r.descripcio || ''} ${r.categoria || ''}`.toLowerCase()
-    return text.includes(search.toLowerCase()) && (categoryFilter === 'Totes' || r.categoria === categoryFilter)
+    return text.includes(search.toLowerCase()) &&
+  (categoryFilter === 'Totes' || (r.categoria || 'General') === categoryFilter)
   }), [records, search, categoryFilter])
 
-  const activeCount = records.filter(r => r.actiu).length
+  const activeCount = records.filter(r => r.actiu !== false).length
   const categoriesCount = new Set(records.map(r => r.categoria || 'General')).size
 
   function openNew() {
@@ -164,7 +168,7 @@ async function handleLogout() {
   responsable: record.responsable || '',
   observacions: record.observacions || '',
   data: record.data || new Date().toISOString().slice(0, 10),
-  actiu: Boolean(record.actiu)
+  actiu: record.actiu !== false
 })
     setModalOpen(true)
   }
@@ -468,10 +472,20 @@ if (!user) {
 ))}
 </tbody>
 </table>
+
+{filtered.length === 0 && (
+  <EmptyState
+    onAdd={openNew}
+    disabled={!firebaseConfigured}
+    isFiltered={records.length > 0}
+  />
+)}
 </div>
 </section>
+        </>}
 
-    {modalOpen && <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) setModalOpen(false)}}><form className="modal" onSubmit={saveRecord}>
+    {modalOpen && (
+  <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) setModalOpen(false)}}><form className="modal" onSubmit={saveRecord}>
       <div className="modal-head"><div><div className="eyebrow">{editing ? 'MODIFICAR DOCUMENT' : 'NOU DOCUMENT'}</div><h2>{editing ? 'Editar registre' : 'Crear registre'}</h2></div><button type="button" className="icon-button" onClick={() => setModalOpen(false)}><X size={19}/></button></div>
       <label>Nom <span>*</span>
   <input autoFocus required maxLength="100"
@@ -537,14 +551,53 @@ if (!user) {
     placeholder="Afegeix observacions..."/>
 </label>
       <label className="toggle-label"><span>Registre actiu</span><button type="button" className={`toggle ${form.actiu ? 'on' : ''}`} onClick={() => setForm({...form, actiu:!form.actiu})}><span/></button></label>
-      <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setModalOpen(false)}>Cancel·lar</button><button className="primary-button" disabled={saving || !firebaseConfigured}>{saving ? <><LoaderCircle className="spin" size={17}/> Desant...</> : <><Check size={17}/> {editing ? 'Guardar canvis' : 'Crear registre'}</>}</button></div>
-    </form></div>}
+      <div className="modal-actions">
+  <button
+    type="button"
+    className="secondary-button"
+    onClick={() => setModalOpen(false)}
+  >
+    Cancel·lar
+  </button>
+
+  <button
+    className="primary-button"
+    disabled={saving || !firebaseConfigured}
+  >
+    {saving ? (
+      <>
+        <LoaderCircle className="spin" size={17}/>
+        Desant...
+      </>
+    ) : (
+      <>
+        <Check size={17}/>
+        {editing ? 'Guardar canvis' : 'Crear registre'}
+      </>
+    )}
+  </button>
+</div>
+        </form>
+  </div>
+             )}
+
+      </div>
+    </main>
   </div>
 }
 
 function Stat({icon: Icon, label, value, note}) {
-  return <div className="stat-card"><div className="stat-top"><span className="stat-icon"><Icon size={19}/></span><span className="stat-label">{label}</span></div><div className="stat-value">{value}</div><div className="stat-note">{note}</div></div>
+  return <div className="stat-card">
+    <div className="stat-top">
+      <span className="stat-icon"><Icon size={19}/></span>
+      <span className="stat-label">{label}</span>
+    </div>
+    <div className="stat-value">{value}</div>
+    <div className="stat-note">{note}</div>
+  </div>
 }
+
+
 function CheckLine({text, done}) { return <div className="check-line"><span className={`check-circle ${done ? 'done' : ''}`}>{done && <Check size={12}/>}</span>{text}</div> }
 function EmptyState({onAdd, disabled, isFiltered}) {
   return <div className="empty-state"><div className="empty-icon"><Database size={25}/></div><h3>{isFiltered ? 'No hi ha resultats' : 'Encara no hi ha registres'}</h3><p>{isFiltered ? 'Prova de canviar els filtres de cerca.' : 'Crea el primer registre per comprovar que Firebase funciona correctament.'}</p>{!isFiltered && <button className="primary-button" onClick={onAdd} disabled={disabled}><Plus size={16}/> Crear primer registre</button>}</div>
