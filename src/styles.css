@@ -79,3 +79,28 @@ tbody tr:hover{background:#f8fbff}
 .modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:5px}.mobile-only{display:none}
 @media(max-width:1000px){.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.content{padding:24px}.topbar{padding:0 24px}}
 @media(max-width:700px){.medical-app .sidebar{transform:translateX(-100%);transition:transform .2s}.medical-app .sidebar.open{transform:translateX(0)}.main-area{margin-left:0}.mobile-only{display:inline-grid}.topbar{padding:0 14px;height:60px}.topbar-right{gap:8px}.user-email{display:none}.content{padding:20px 14px}.page-heading{align-items:flex-start;flex-direction:column}.stats-grid{gap:10px}.stat-card{padding:14px}.stat-value{font-size:23px}.toolbar{flex-wrap:wrap}.search-box{flex-basis:100%}.filter-box{flex:1}.appointment-row{gap:9px;flex-wrap:wrap}.appointment-info{min-width:calc(100% - 65px)}.appointment-actions{margin-left:55px}.modal{padding:19px}.breadcrumb{font-size:11px}}
+
+/* Calendari mensual */
+.calendar-panel{padding:20px 22px 16px}
+.calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.calendar-month-controls{display:flex;align-items:center;gap:12px}
+.calendar-month-controls h2{font:750 19px Manrope,sans-serif;text-transform:capitalize;color:#253858;min-width:190px;text-align:center;margin:0}
+.calendar-today{padding:8px 13px}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.calendar-weekday{text-align:center;padding:8px 3px;color:#667085;font-size:11px;font-weight:750;text-transform:uppercase}
+.calendar-day{min-width:0;min-height:76px;border:1px solid #edf0f5;border-radius:10px;background:#fff;color:#344054;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;padding:10px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.calendar-day:hover{border-color:#9bbcf5;background:#f8fbff}
+.calendar-day.outside-month{background:#f8f9fb;color:#a0a8b5}
+.calendar-day.is-today{border-color:#3676df}
+.calendar-day.is-selected{background:#edf4ff;border:2px solid #2864df;padding:9px}
+.calendar-day-number{font-size:13px;font-weight:750}
+.calendar-day-count{font-size:10px;font-weight:700;color:#2864df;background:#dceaff;border-radius:20px;padding:3px 6px;white-space:nowrap}
+.calendar-legend{display:flex;gap:18px;margin-top:14px;color:#667085;font-size:11px}
+.calendar-legend span{display:flex;align-items:center;gap:6px}
+.calendar-legend-dot,.calendar-today-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#2864df}
+.calendar-today-dot{background:#fff;border:2px solid #2864df}
+.calendar-selected-panel{margin-top:18px;padding:20px 22px}
+.calendar-empty{display:flex;flex-direction:column;align-items:center;gap:7px;padding:28px 12px;color:#98a2b3;text-align:center}
+.calendar-empty strong{font-size:13px;color:#475467}
+.calendar-empty span{font-size:12px}
+@media(max-width:700px){.calendar-panel,.calendar-selected-panel{padding:14px}.calendar-grid{gap:4px}.calendar-day{min-height:62px;padding:7px 5px;border-radius:8px;gap:6px}.calendar-day.is-selected{padding:6px 4px}.calendar-day-count{font-size:9px;padding:2px 4px}.calendar-month-controls{gap:4px}.calendar-month-controls h2{font-size:15px;min-width:135px}.calendar-weekday{font-size:10px;padding:6px 1px}.calendar-toolbar{margin-bottom:12px}}
