@@ -126,3 +126,23 @@ tbody tr:hover{background:#f8fbff}
   .calendar-week-grid .week-day{min-height:125px;padding:8px 6px}
   .calendar-week-appointments>span{font-size:9px;padding:4px}
 }
+
+
+/* Filtres avançats de cites */
+.advanced-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.advanced-toolbar .search-box{flex:1 1 220px;min-width:190px}
+.advanced-toolbar .filter-box{flex:1 1 145px;min-width:135px;height:38px}
+.advanced-toolbar .filter-box select{width:100%;min-width:0}
+.date-filter{display:flex;flex-direction:column;gap:3px;color:#667085;font-size:10px;font-weight:650}
+.date-filter input{height:38px;max-width:145px;border:1px solid #d0d5dd;border-radius:8px;padding:0 8px;color:#344054;background:#fff;font-size:11px}
+.clear-filters{height:36px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:#475467;padding:0 11px;font-size:11px;font-weight:650;white-space:nowrap}
+.clear-filters:hover{background:#f2f4f7;border-color:#98a2b3}
+@media(max-width:700px){
+ .advanced-toolbar{align-items:stretch}
+ .advanced-toolbar .search-box{flex-basis:100%;min-width:100%}
+ .advanced-toolbar .filter-box{flex:1 1 calc(50% - 8px);min-width:0}
+ .date-filter{flex:1 1 calc(50% - 8px)}
+ .date-filter input{max-width:none;width:100%}
+ .clear-filters{flex:1}
+ .advanced-toolbar .results-count{align-self:center;margin-left:auto}
+}
