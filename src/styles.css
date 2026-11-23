@@ -160,3 +160,10 @@ tbody tr:hover{background:#f8fbff}
 .backup-file-input{display:none}
 .backup-note{font-size:10px;line-height:1.5;color:#98a2b3;margin-top:13px}
 @media(max-width:700px){.backup-grid{grid-template-columns:1fr}.backup-card{min-height:0}.backup-card .primary-button,.backup-card .secondary-button{margin-top:8px}}
+
+
+/* Avisos i recordatoris dins de l'aplicació */
+.reminder-panel{margin-bottom:18px}
+.reminder-total{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:#edf4ff;color:#2864df;font-size:12px;font-weight:750}
+.reminder-empty{display:flex;align-items:center;gap:10px;padding:18px 4px;color:#667085;font-size:12px}
+.reminder-empty svg{color:#16a36a;flex-shrink:0}
