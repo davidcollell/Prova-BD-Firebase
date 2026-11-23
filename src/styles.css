@@ -167,3 +167,4 @@ tbody tr:hover{background:#f8fbff}
 .reminder-total{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:#edf4ff;color:#2864df;font-size:12px;font-weight:750}
 .reminder-empty{display:flex;align-items:center;gap:10px;padding:18px 4px;color:#667085;font-size:12px}
 .reminder-empty svg{color:#16a36a;flex-shrink:0}
+.reminder-controls{display:flex;align-items:center;gap:10px;flex-shrink:0}.reminder-notification-note{font-size:11px;color:#7b8798;margin:-7px 0 13px;line-height:1.5}.reminder-controls .secondary-button{white-space:nowrap}@media(max-width:700px){.reminder-controls{gap:7px;flex-wrap:wrap;justify-content:flex-end}.reminder-controls .secondary-button{font-size:10px;padding:8px 10px}.reminder-notification-note{margin-top:-3px}}
