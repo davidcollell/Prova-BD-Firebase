@@ -23,3 +23,59 @@ tbody tr:hover{background:#f8fbff}
 .category-tag{background:#eff4fb;color:#466080}
 .modal{max-height:calc(100vh - 36px);overflow-y:auto}
 @media(max-width:700px){.topbar-right>div[style]{gap:7px!important}.topbar-right>div[style]>span{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.recent-row{gap:8px}.state-tag{padding:4px 7px}}
+
+
+/* Cites mèdiques */
+.auth-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#edf4ff,#f7f9fc)}
+.auth-card{width:min(100%,420px);background:#fff;border:1px solid #e5eaf2;border-radius:20px;padding:36px;box-shadow:0 18px 55px rgba(16,24,40,.09);display:flex;flex-direction:column;gap:16px}
+.auth-logo{width:54px;height:54px;border-radius:16px;background:#e8f1ff;color:#2463eb;display:grid;place-items:center}
+.auth-card h1{font:800 27px Manrope,sans-serif;margin:0;color:#172b4d}
+.auth-card p{margin:-10px 0 8px;color:#667085}
+.auth-card label,.medical-modal>label,.name-modal>label,.medical-modal .form-row label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;color:#344054}
+.auth-card input,.medical-modal input,.medical-modal select,.medical-modal textarea,.name-modal input{width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:11px 12px;background:#fff;color:#202939;outline:none}
+.auth-card input:focus,.medical-modal input:focus,.medical-modal select:focus,.medical-modal textarea:focus,.name-modal input:focus{border-color:#4385f5;box-shadow:0 0 0 3px rgba(67,133,245,.13)}
+.primary-button,.secondary-button{border:0;border-radius:9px;padding:11px 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:13px}
+.primary-button{background:#2864df;color:white}.primary-button:hover{background:#1e50bc}.primary-button:disabled{opacity:.45;cursor:not-allowed}
+.secondary-button{background:#f2f4f7;color:#344054;border:1px solid #e4e7ec}
+.full{width:100%}.link-button,.text-button{border:0;background:transparent;color:#2864df;font-weight:600;padding:8px}
+.inline-error{background:#fef3f2;color:#b42318;border-radius:8px;padding:10px;font-size:13px}
+.loading-screen{min-height:100vh;display:grid;place-items:center;color:#667085;background:#f5f7fb}
+.medical-app .sidebar{display:flex;flex-direction:column}.medical-app .sidebar nav{display:flex;flex-direction:column;gap:5px}
+.medical-app .nav-label{font-size:10px;letter-spacing:1.2px;color:#98a2b3;margin:30px 10px 12px;font-weight:700}
+.medical-app .nav-item{width:100%;display:flex;align-items:center;gap:12px;border:0;background:transparent;color:#cbd5e1;padding:12px;border-radius:9px;text-align:left;font-size:13px}
+.medical-app .nav-item:hover,.medical-app .nav-item.selected{background:#1d3558;color:#fff}
+.nav-count{margin-left:auto;font-size:11px;background:rgba(255,255,255,.12);padding:2px 7px;border-radius:20px}
+.sidebar-bottom{margin-top:auto}.connection-card{padding:13px;border:1px solid rgba(255,255,255,.12);border-radius:10px;margin-bottom:14px}
+.connection-title{font-size:12px;color:#e5eaf2;display:flex;align-items:center;gap:8px}.connection-card p{font-size:11px;color:#98a2b3;margin:7px 0 0 17px}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#98a2b3}.status-dot.connected{background:#12b76a}.status-dot.error{background:#f04438}.status-dot.connecting{background:#fdb022}
+.sidebar-foot{display:flex;flex-direction:column;gap:10px;color:#98a2b3;font-size:11px;overflow:hidden}.sidebar-foot>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-button{display:flex;align-items:center;gap:7px;background:transparent;border:0;color:#cbd5e1;padding:7px 0;font-size:12px}
+.main-area{margin-left:250px;min-height:100vh}.topbar{height:68px;background:#fff;border-bottom:1px solid #eaecf0;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:3}
+.breadcrumb{font-size:13px;color:#667085}.breadcrumb span{margin:0 9px;color:#c0c6d0}.breadcrumb strong{color:#344054}
+.topbar-right{display:flex;align-items:center;gap:18px}.user-email{font-size:12px;color:#667085}.connection-pill{font-size:11px;color:#667085;display:flex;align-items:center;gap:7px}
+.content{padding:30px 34px;max-width:1440px;margin:auto}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:24px}
+.page-heading h1{font:800 25px Manrope,sans-serif;color:#172b4d;margin:5px 0}.page-heading p{color:#667085;font-size:13px;margin:0}
+.eyebrow{font-size:10px;letter-spacing:1.2px;color:#5276b9;font-weight:800}
+.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:24px}
+.stat-card,.panel{background:#fff;border:1px solid #eaecf0;border-radius:13px}
+.stat-card{padding:19px}.stat-top{display:flex;align-items:center;gap:10px}.stat-icon,.directory-avatar{width:36px;height:36px;border-radius:10px;background:#edf4ff;color:#2864df;display:grid;place-items:center}
+.stat-label{font-size:12px;color:#667085;font-weight:600}.stat-value{font:800 27px Manrope,sans-serif;color:#172b4d;margin-top:13px}.stat-note{font-size:11px;color:#98a2b3;margin-top:3px}
+.panel{padding:22px}.panel-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.panel-heading h2{font:700 16px Manrope,sans-serif;margin:0;color:#172b4d}.panel-heading p{font-size:12px;color:#98a2b3;margin:5px 0 0}
+.text-button{display:flex;align-items:center;gap:4px;font-size:12px}.medical-list{display:flex;flex-direction:column}
+.appointment-row{display:flex;align-items:center;gap:15px;padding:15px 0;border-top:1px solid #f0f2f5}.appointment-date{width:48px;height:52px;flex:0 0 48px;border-radius:10px;background:#edf4ff;color:#2864df;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.appointment-date strong{font:800 20px Manrope,sans-serif}.appointment-date span{font-size:10px;text-transform:uppercase}
+.appointment-info{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}.appointment-info strong{font-size:13px;color:#253858}.appointment-info>span{font-size:12px;color:#667085}.appointment-info small{display:flex;align-items:center;gap:5px;color:#98a2b3;font-size:11px}.appointment-info p{font-size:11px;color:#667085;margin:2px 0 0}
+.appointment-row.completed .appointment-info>strong{text-decoration:line-through;color:#98a2b3}
+.appointment-actions,.row-actions{display:flex;align-items:center;gap:3px}.icon-button{width:34px;height:34px;display:inline-grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#667085}.icon-button:hover{background:#f2f4f7;color:#2864df}.delete-button:hover{color:#d92d20;background:#fef3f2}
+.table-panel{padding:0}.toolbar{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #eaecf0}.search-box,.filter-box{display:flex;align-items:center;gap:8px;border:1px solid #d0d5dd;border-radius:8px;padding:0 10px;color:#98a2b3}.search-box{flex:1}.search-box input,.filter-box select{border:0;outline:0;padding:10px 0;background:transparent;font-size:12px;min-width:0}.filter-box select{color:#344054}.results-count{font-size:11px;color:#98a2b3;white-space:nowrap}.table-panel .medical-list{padding:0 20px}
+.directory-panel{padding:6px 20px}.directory-row{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid #f0f2f5}.directory-row:last-child{border-bottom:0}.directory-row strong{font-size:13px;color:#344054;flex:1}.directory-avatar{width:34px;height:34px}
+.empty-state{text-align:center;padding:40px 20px}.empty-icon{margin:0 auto 12px;width:46px;height:46px;display:grid;place-items:center;border-radius:13px;background:#edf4ff;color:#2864df}.empty-state h3{font:700 15px Manrope,sans-serif;color:#344054;margin:0 0 6px}.empty-state p{font-size:12px;color:#98a2b3;margin:0 0 17px}
+.alert{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:9px;margin-bottom:18px;font-size:12px}.alert .icon-button{margin-left:auto}.alert.danger{background:#fef3f2;color:#b42318}.alert.success{background:#ecfdf3;color:#027a48}
+.modal-backdrop{position:fixed;inset:0;background:rgba(16,24,40,.48);z-index:20;display:grid;place-items:center;padding:20px;overflow:auto}
+.modal{width:min(100%,540px);max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:15px;padding:25px;box-shadow:0 24px 60px rgba(16,24,40,.2);display:flex;flex-direction:column;gap:15px}
+.name-modal{width:min(100%,420px)}.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px}.modal-head h2{font:800 20px Manrope,sans-serif;color:#172b4d;margin:4px 0 0}
+.medical-modal>label small{font-size:11px;color:#98a2b3;font-weight:400}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.reminder-field{border:1px solid #eaecf0;border-radius:9px;padding:12px;display:flex;flex-wrap:wrap;gap:12px}.reminder-field legend{font-size:12px;font-weight:700;color:#344054;padding:0 5px}.check-option{font-size:11px;color:#667085;display:flex;align-items:center;gap:6px}.check-option input{width:auto}
+.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:5px}.mobile-only{display:none}
+@media(max-width:1000px){.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.content{padding:24px}.topbar{padding:0 24px}}
+@media(max-width:700px){.medical-app .sidebar{transform:translateX(-100%);transition:transform .2s}.medical-app .sidebar.open{transform:translateX(0)}.main-area{margin-left:0}.mobile-only{display:inline-grid}.topbar{padding:0 14px;height:60px}.topbar-right{gap:8px}.user-email{display:none}.content{padding:20px 14px}.page-heading{align-items:flex-start;flex-direction:column}.stats-grid{gap:10px}.stat-card{padding:14px}.stat-value{font-size:23px}.toolbar{flex-wrap:wrap}.search-box{flex-basis:100%}.filter-box{flex:1}.appointment-row{gap:9px;flex-wrap:wrap}.appointment-info{min-width:calc(100% - 65px)}.appointment-actions{margin-left:55px}.modal{padding:19px}.breadcrumb{font-size:11px}}
