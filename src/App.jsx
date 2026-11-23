@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'
 import { CalendarDays, Users, Stethoscope, LayoutDashboard, Plus, Search, Pencil, Trash2, CheckCircle2, Clock, LogOut, Menu, X, ExternalLink, Download, MapPin, AlertCircle, ChevronRight, ChevronLeft, CalendarCheck } from 'lucide-react'
 import { db, auth, firebaseConfigured } from './firebase'
@@ -108,11 +108,11 @@ export default function App() {
       if(!window.confirm('La còpia conté '+backup.data.membres.length+' membres, '+backup.data.metges.length+' metges i '+backup.data.cites.length+' cites.\n\nS’afegiran només els registres que encara no existeixin. Les dades actuals no se sobreescriuran. Vols continuar?'))return
       let added=0,skipped=0
       const restoreCollection=async(collectionName,items,mapper)=>{
+        const currentIds=new Set((collectionName==='membres'?members:collectionName==='metges'?doctors:appointments).map(item=>item.id))
         for(const item of items){
-          const ref=doc(db,collectionName,item.id)
-          const existing=await getDoc(ref)
-          if(existing.exists()){skipped++;continue}
-          await setDoc(ref,{...mapper(item),propietari:user.uid,creatEl:serverTimestamp()})
+          if(currentIds.has(item.id)){skipped++;continue}
+          await setDoc(doc(db,collectionName,item.id),{...mapper(item),propietari:user.uid,creatEl:serverTimestamp()})
+          currentIds.add(item.id)
           added++
         }
       }
