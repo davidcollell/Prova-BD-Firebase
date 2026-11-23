@@ -104,3 +104,25 @@ tbody tr:hover{background:#f8fbff}
 .calendar-empty strong{font-size:13px;color:#475467}
 .calendar-empty span{font-size:12px}
 @media(max-width:700px){.calendar-panel,.calendar-selected-panel{padding:14px}.calendar-grid{gap:4px}.calendar-day{min-height:62px;padding:7px 5px;border-radius:8px;gap:6px}.calendar-day.is-selected{padding:6px 4px}.calendar-day-count{font-size:9px;padding:2px 4px}.calendar-month-controls{gap:4px}.calendar-month-controls h2{font-size:15px;min-width:135px}.calendar-weekday{font-size:10px;padding:6px 1px}.calendar-toolbar{margin-bottom:12px}}
+
+
+/* Vista setmanal del calendari */
+.calendar-view-switch{display:flex;align-items:center;gap:3px;padding:3px;background:#f2f4f7;border:1px solid #eaecf0;border-radius:9px}
+.calendar-view-switch button{border:0;border-radius:6px;background:transparent;color:#667085;padding:7px 12px;font-size:11px;font-weight:700}
+.calendar-view-switch button.active{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px #10182818}
+.calendar-week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.calendar-week-grid .week-day{min-height:150px;gap:9px}
+.calendar-week-label{font-size:11px;font-weight:750;color:#667085;text-transform:uppercase}
+.calendar-week-appointments{display:flex;flex-direction:column;gap:5px;width:100%;min-width:0}
+.calendar-week-appointments>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:5px;background:#e8f1ff;color:#2458a6;padding:5px 6px;font-size:10px;font-weight:650}
+.calendar-week-appointments small{font-size:10px;color:#667085}
+.calendar-week-no-appointments{font-size:10px;color:#a0a8b5}
+@media(max-width:700px){
+  .calendar-toolbar{flex-wrap:wrap}
+  .calendar-month-controls{order:2;flex:1;justify-content:center}
+  .calendar-view-switch{order:3;margin-left:auto}
+  .calendar-week-grid{min-width:680px}
+  .calendar-panel:has(.calendar-week-grid){overflow-x:auto}
+  .calendar-week-grid .week-day{min-height:125px;padding:8px 6px}
+  .calendar-week-appointments>span{font-size:9px;padding:4px}
+}
