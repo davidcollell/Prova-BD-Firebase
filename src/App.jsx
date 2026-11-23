@@ -1,611 +1,116 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where
-} from 'firebase/firestore'
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from 'firebase/auth'
-import {
-  Activity, AlertCircle, Check, CheckCircle2, ChevronDown, CirclePlus, Cloud,
-  Database, Edit3, ExternalLink, Filter, LayoutDashboard, LoaderCircle, Menu,
-  MoreHorizontal, Pencil, Plus, RefreshCw, Search, ShieldAlert, Smartphone,
-  Trash2, Wifi, X
-} from 'lucide-react'
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'
+import { CalendarDays, Users, Stethoscope, LayoutDashboard, Plus, Search, Pencil, Trash2, CheckCircle2, Clock, LogOut, Menu, X, ExternalLink, Download, MapPin, AlertCircle, ChevronRight, CalendarCheck } from 'lucide-react'
 import { db, auth, firebaseConfigured } from './firebase'
 
-const emptyForm = {
-  nom: '',
-  descripcio: '',
-  categoria: 'General',
-  estat: 'Pendent',
-  prioritat: 'Mitjana',
-  dataInici: new Date().toISOString().slice(0, 10),
-  dataFinal: '',
-  responsable: '',
-  observacions: '',
-  data: new Date().toISOString().slice(0, 10),
-  actiu: true
+const today = () => {
+  const d = new Date()
+  return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-')
+}
+const emptyAppointment = () => ({ membreId:'', metge:'', esp:'', data:today(), hora:'09:00', ubi:'', notes:'', rec:[1440,120], done:false })
+const reminders = [{value:10080,label:'1 setmana abans'},{value:1440,label:'1 dia abans'},{value:120,label:'2 hores abans'},{value:30,label:'30 minuts abans'}]
+const eventDate = a => new Date(a.data+'T'+(a.hora||'09:00')+':00')
+const icsDate = d => d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')
+const escapeICS = s => String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')
+function exportICS(a) {
+  const start=eventDate(a), end=new Date(start.getTime()+3600000)
+  const alarms=(a.rec||[]).map(n=>'BEGIN:VALARM\nTRIGGER:'+(n>=1440?'-P'+Math.floor(n/1440)+'D':'-PT'+n+'M')+'\nACTION:DISPLAY\nDESCRIPTION:Recordatori de cita mèdica\nEND:VALARM').join('\n')
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Cites mediques//CA','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:cita-'+a.id+'@cites-mediques','DTSTAMP:'+icsDate(new Date()),'DTSTART:'+icsDate(start),'DTEND:'+icsDate(end),'SUMMARY:'+escapeICS('Visita mèdica - '+a.metge),'DESCRIPTION:'+escapeICS([a.esp,a.ubi,a.notes].filter(Boolean).join('\n')),'LOCATION:'+escapeICS(a.ubi),alarms,'END:VEVENT','END:VCALENDAR'].filter(Boolean)
+  const url=URL.createObjectURL(new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'}))
+  const link=document.createElement('a'); link.href=url; link.download='cita-medica-'+a.data+'.ics'; link.click(); URL.revokeObjectURL(url)
+}
+function openGoogleCalendar(a) {
+  const start=eventDate(a), end=new Date(start.getTime()+3600000)
+  const params=new URLSearchParams({action:'TEMPLATE',text:'Visita mèdica - '+a.metge,dates:icsDate(start).replace('Z','')+'/'+icsDate(end).replace('Z',''),details:[a.esp,a.ubi,a.notes].filter(Boolean).join('\n'),location:a.ubi||''})
+  window.open('https://calendar.google.com/calendar/render?'+params.toString(),'_blank','noopener,noreferrer')
 }
 
 export default function App() {
-  const [records, setRecords] = useState([])
-  const [connection, setConnection] = useState(firebaseConfigured ? 'connecting' : 'missing')
-  const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('Totes')
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(emptyForm)
-  const [saving, setSaving] = useState(false)
-  const [mobileMenu, setMobileMenu] = useState(false)
-  const [notice, setNotice] = useState('')
-  const [user, setUser] = useState(null)
-  const [authLoading, setAuthLoading] = useState(true)
-  const [authMode, setAuthMode] = useState('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [authBusy, setAuthBusy] = useState(false)
+  const [user,setUser]=useState(null), [authLoading,setAuthLoading]=useState(true), [authMode,setAuthMode]=useState('login')
+  const [email,setEmail]=useState(''), [password,setPassword]=useState(''), [authBusy,setAuthBusy]=useState(false)
+  const [members,setMembers]=useState([]), [doctors,setDoctors]=useState([]), [appointments,setAppointments]=useState([])
+  const [connection,setConnection]=useState('connecting'), [error,setError]=useState(''), [notice,setNotice]=useState('')
+  const [tab,setTab]=useState('dashboard'), [mobileMenu,setMobileMenu]=useState(false), [search,setSearch]=useState(''), [memberFilter,setMemberFilter]=useState('all')
+  const [modal,setModal]=useState(''), [editing,setEditing]=useState(null), [name,setName]=useState(''), [form,setForm]=useState(emptyAppointment), [saving,setSaving]=useState(false)
 
-  useEffect(() => {
-  if (!firebaseConfigured || !auth) {
-    setAuthLoading(false)
-    return
+  useEffect(()=> {
+    if(!firebaseConfigured||!auth){setAuthLoading(false);return}
+    return onAuthStateChanged(auth,u=>{setUser(u);setAuthLoading(false)})
+  },[])
+  useEffect(()=> {
+    if(!user||!db){setMembers([]);setDoctors([]);setAppointments([]);setConnection(firebaseConfigured?'connecting':'missing');return}
+    setConnection('connecting'); let ready=0
+    const onReady=()=>{ready++;if(ready>=3)setConnection('connected')}
+    const onError=e=>{setConnection('error');setError(e.code==='permission-denied'?'Accés denegat. Cal actualitzar les regles de Firestore.':e.message)}
+    const unsubs=[['membres',setMembers],['metges',setDoctors],['cites',setAppointments]].map(([col,setter])=>onSnapshot(query(collection(db,col),where('propietari','==',user.uid)),s=>{setter(s.docs.map(d=>({id:d.id,...d.data()})));onReady()},onError))
+    return ()=>unsubs.forEach(fn=>fn())
+  },[user])
+
+  async function authenticate(e) {
+    e.preventDefault();setError('');setAuthBusy(true)
+    try { if(authMode==='register') await createUserWithEmailAndPassword(auth,email.trim(),password); else await signInWithEmailAndPassword(auth,email.trim(),password);setPassword('') }
+    catch(e){const msgs={'auth/email-already-in-use':'Aquest correu ja està registrat.','auth/invalid-email':'El correu electrònic no és vàlid.','auth/weak-password':'La contrasenya ha de tenir almenys 6 caràcters.','auth/invalid-credential':'Correu o contrasenya incorrectes.'};setError(msgs[e.code]||e.message)}
+    finally{setAuthBusy(false)}
   }
-
-  const unsubscribe = onAuthStateChanged(auth, currentUser => {
-    setUser(currentUser)
-    setAuthLoading(false)
-  })
-
-  return unsubscribe
-}, [])
-
-
-
-useEffect(() => {
-  if (!firebaseConfigured || !user) {
-    setRecords([])
-    setConnection('missing')
-    return
+  function flash(s){setNotice(s);window.setTimeout(()=>setNotice(''),3000)}
+  function nameModal(type,item){setModal(type);setEditing(item?item.id:null);setName(item?item.nom:'')}
+  async function saveName(e){
+    e.preventDefault();if(!name.trim())return;setSaving(true);setError('')
+    const col=modal==='member'?'membres':'metges'
+    try{if(editing)await updateDoc(doc(db,col,editing),{nom:name.trim(),actualitzatEl:serverTimestamp()});else await addDoc(collection(db,col),{nom:name.trim(),propietari:user.uid,creatEl:serverTimestamp()});setModal('');setName('');setEditing(null);flash('Dades desades correctament.')}
+    catch(e){setError(e.message)}finally{setSaving(false)}
   }
-
-  setConnection('connecting')
-
-  const q = query(
-  collection(db, 'proves'),
-  where('propietari', '==', user.uid)
-)
-
-  const unsubscribe = onSnapshot(q, snapshot => {
-    setRecords(
-  snapshot.docs
-    .map(item => ({
-      id: item.id,
-      ...item.data()
-    }))
-    .sort((a, b) => {
-      const dataA = a.creatEl?.toMillis?.() || 0
-      const dataB = b.creatEl?.toMillis?.() || 0
-      return dataB - dataA
-    })
-)
-    setConnection('connected')
-    setError('')
-  }, err => {
-    setConnection('error')
-    setError(
-      err.code === 'permission-denied'
-        ? 'Accés denegat. Revisa les regles de seguretat de Firestore.'
-        : err.message
-    )
-  })
-
-  return unsubscribe
-}, [user])
-async function handleAuth(e) {
-  e.preventDefault()
-  setError('')
-  setAuthBusy(true)
-
-  try {
-    if (authMode === 'register') {
-      await createUserWithEmailAndPassword(auth, email, password)
-      setNotice('Compte creat correctament.')
-    } else {
-      await signInWithEmailAndPassword(auth, email, password)
-      setNotice('Sessió iniciada correctament.')
-    }
-
-    setPassword('')
-  } catch (err) {
-    const messages = {
-      'auth/email-already-in-use': 'Aquest correu ja està registrat.',
-      'auth/invalid-email': 'El correu electrònic no és vàlid.',
-      'auth/weak-password': 'La contrasenya ha de tenir almenys 6 caràcters.',
-      'auth/invalid-credential': 'Correu o contrasenya incorrectes.',
-      'auth/user-not-found': 'No existeix cap compte amb aquest correu.',
-      'auth/wrong-password': 'La contrasenya és incorrecta.'
-    }
-
-    setError(messages[err.code] || err.message)
-  } finally {
-    setAuthBusy(false)
+  async function removeName(type,item){
+    if(type==='member'&&appointments.some(a=>a.membreId===item.id)){setError('Aquest membre té cites associades. Elimina o modifica primer les cites.');return}
+    if(type==='doctor'&&appointments.some(a=>a.metge===item.nom)){setError('Aquest metge té cites associades. Modifica o elimina primer les cites.');return}
+    if(!window.confirm('Vols eliminar «'+item.nom+'»?'))return
+    try{await deleteDoc(doc(db,type==='member'?'membres':'metges',item.id));flash('Element eliminat.')}catch(e){setError(e.message)}
   }
-}
-
-async function handleLogout() {
-  try {
-    await signOut(auth)
-    setNotice('Sessió tancada correctament.')
-  } catch (err) {
-    setError(err.message)
+  function openAppointment(a){
+    setEditing(a?a.id:null)
+    setForm(a?{membreId:a.membreId||'',metge:a.metge||'',esp:a.esp||'',data:a.data||today(),hora:a.hora||'09:00',ubi:a.ubi||'',notes:a.notes||'',rec:a.rec||[1440,120],done:!!a.done}:emptyAppointment())
+    setModal('appointment')
   }
-}
-  const categories = useMemo(() => ['Totes', ...new Set(records.map(r => r.categoria || 'General'))], [records])
-  const filtered = useMemo(() => records.filter(r => {
-    const text = `${r.nom || ''} ${r.descripcio || ''} ${r.categoria || ''}`.toLowerCase()
-    return text.includes(search.toLowerCase()) &&
-  (categoryFilter === 'Totes' || (r.categoria || 'General') === categoryFilter)
-  }), [records, search, categoryFilter])
-
-  const activeCount = records.filter(r => r.actiu !== false).length
-  const categoriesCount = new Set(records.map(r => r.categoria || 'General')).size
-
-  function openNew() {
-    setEditing(null); setForm(emptyForm); setModalOpen(true)
-  }
-  function openEdit(record) {
-    setEditing(record.id)
-    setForm({
-  nom: record.nom || '',
-  descripcio: record.descripcio || '',
-  categoria: record.categoria || 'General',
-  estat: record.estat || 'Pendent',
-  prioritat: record.prioritat || 'Mitjana',
-  dataInici: record.dataInici || record.data || '',
-  dataFinal: record.dataFinal || '',
-  responsable: record.responsable || '',
-  observacions: record.observacions || '',
-  data: record.data || new Date().toISOString().slice(0, 10),
-  actiu: record.actiu !== false
-})
-    setModalOpen(true)
-  }
-  async function saveRecord(e) {
+  async function saveAppointment(e){
     e.preventDefault()
-    if (!form.nom.trim()) return
-    setSaving(true); setError('')
-    try {
-      const payload = {
-  ...form,
-  nom: form.nom.trim(),
-  descripcio: form.descripcio.trim(),
-  categoria: form.categoria.trim() || 'General',
-  estat: form.estat || 'Pendent',
-  prioritat: form.prioritat || 'Mitjana',
-  dataInici: form.dataInici || '',
-  dataFinal: form.dataFinal || '',
-  responsable: (form.responsable || '').trim(),
-  observacions: (form.observacions || '').trim(),
-  actualitzatEl: serverTimestamp()
-}
-      if (editing) await updateDoc(doc(db, 'proves', editing), payload)
-      else await addDoc(collection(db, 'proves'), {
-  ...payload,
-  propietari: user.uid,
-  creatEl: serverTimestamp()
-})
-      setModalOpen(false)
-      setNotice(editing ? 'Registre actualitzat correctament.' : 'Registre creat correctament.')
-      setTimeout(() => setNotice(''), 3500)
-    } catch (err) { setError(err.message) }
-    finally { setSaving(false) }
+    if(!form.membreId||!form.metge.trim()||!form.data||!form.hora){setError('Cal indicar membre, metge, data i hora.');return}
+    setSaving(true);setError('')
+    const member=members.find(m=>m.id===form.membreId)
+    const payload={...form,metge:form.metge.trim(),esp:form.esp.trim(),ubi:form.ubi.trim(),notes:form.notes.trim(),membreNom:member?member.nom:'',actualitzatEl:serverTimestamp()}
+    try{if(editing)await updateDoc(doc(db,'cites',editing),payload);else await addDoc(collection(db,'cites'),{...payload,propietari:user.uid,creatEl:serverTimestamp()});setModal('');setEditing(null);flash('Cita desada correctament.')}
+    catch(e){setError(e.message)}finally{setSaving(false)}
   }
-  async function removeRecord(record) {
-    if (!confirm(`Vols eliminar el registre «${record.nom}»? Aquesta acció no es pot desfer.`)) return
-    try {
-      await deleteDoc(doc(db, 'proves', record.id))
-      setNotice('Registre eliminat.'); setTimeout(() => setNotice(''), 3000)
-    } catch (err) { setError(err.message) }
-  }
-  async function toggleActive(record) {
-    try { await updateDoc(doc(db, 'proves', record.id), { actiu: !record.actiu, actualitzatEl: serverTimestamp() }) }
-    catch (err) { setError(err.message) }
-  }
+  async function toggleDone(a){try{await updateDoc(doc(db,'cites',a.id),{done:!a.done,actualitzatEl:serverTimestamp()});flash(a.done?'Cita reoberta.':'Cita marcada com a completada.')}catch(e){setError(e.message)}}
+  async function removeAppointment(a){if(!window.confirm('Vols eliminar aquesta cita?'))return;try{await deleteDoc(doc(db,'cites',a.id));flash('Cita eliminada.')}catch(e){setError(e.message)}}
 
-  const nav = [
-    { id: 'dashboard', label: 'Resum', icon: LayoutDashboard },
-    { id: 'records', label: 'Registres', icon: Database },
-  ]
-if (authLoading) {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      fontFamily: 'Arial'
-    }}>
-      Comprovant la sessió...
-    </div>
-  )
-}
+  const sorted=useMemo(()=>appointments.slice().sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)),[appointments])
+  const upcoming=sorted.filter(a=>!a.done&&(a.data+(a.hora||'00:00'))>=today()+'00:00')
+  const history=sorted.filter(a=>a.done||(a.data+(a.hora||'00:00'))<today()+'00:00')
+  const shown=(tab==='history'?history:upcoming).filter(a=>{
+    const mn=a.membreNom||(members.find(m=>m.id===a.membreId)||{}).nom||''
+    return [mn,a.metge,a.esp,a.ubi,a.notes].join(' ').toLowerCase().includes(search.toLowerCase())&&(memberFilter==='all'||a.membreId===memberFilter)
+  })
+  const nav=[{id:'dashboard',label:'Resum',icon:LayoutDashboard},{id:'appointments',label:'Properes cites',icon:CalendarDays,count:upcoming.length},{id:'history',label:'Historial',icon:CalendarCheck,count:history.length},{id:'members',label:'Membres',icon:Users,count:members.length},{id:'doctors',label:'Metges',icon:Stethoscope,count:doctors.length}]
 
-if (!user) {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: '#f3f5f9',
-      fontFamily: 'Arial',
-      padding: '20px'
-    }}>
-      <form
-        onSubmit={handleAuth}
-        style={{
-          width: '100%',
-          maxWidth: '400px',
-          background: 'white',
-          padding: '32px',
-          borderRadius: '16px',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.08)'
-        }}
-      >
-        <h1 style={{ marginTop: 0 }}>
-          {authMode === 'login' ? 'Iniciar sessió' : 'Crear compte'}
-        </h1>
+  if(authLoading)return <div className="loading-screen">Comprovant la sessió...</div>
+  if(!user)return <div className="auth-screen"><form className="auth-card" onSubmit={authenticate}><div className="auth-logo"><CalendarDays size={27}/></div><h1>Cites mèdiques</h1><p>Gestiona les visites mèdiques en un únic lloc.</p><label>Correu electrònic<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>Contrasenya<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6} autoComplete={authMode==='login'?'current-password':'new-password'}/></label>{error&&<div className="inline-error">{error}</div>}<button className="primary-button full" disabled={authBusy}>{authBusy?'Un moment...':authMode==='login'?'Iniciar sessió':'Crear compte'}</button><button type="button" className="link-button full" onClick={()=>{setAuthMode(authMode==='login'?'register':'login');setError('')}}>{authMode==='login'?'Encara no tens compte? Crear-ne un':'Ja tens compte? Iniciar sessió'}</button></form></div>
 
-        <p style={{ color: '#64748b' }}>
-          Accedeix a la teva aplicació
-        </p>
-
-        <label>Correu electrònic</label>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            padding: '12px',
-            marginTop: '6px',
-            marginBottom: '18px',
-            border: '1px solid #cbd5e1',
-            borderRadius: '8px'
-          }}
-        />
-
-        <label>Contrasenya</label>
-        <input
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          minLength={6}
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            padding: '12px',
-            marginTop: '6px',
-            marginBottom: '18px',
-            border: '1px solid #cbd5e1',
-            borderRadius: '8px'
-          }}
-        />
-
-        {error && (
-          <p style={{ color: '#dc2626' }}>{error}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={authBusy}
-          style={{
-            width: '100%',
-            padding: '13px',
-            background: '#2563eb',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: 'bold'
-          }}
-        >
-          {authBusy
-            ? 'Un moment...'
-            : authMode === 'login'
-              ? 'Entrar'
-              : 'Registrar-me'}
-        </button>
-
-        <p style={{ textAlign: 'center', marginTop: '22px' }}>
-          {authMode === 'login'
-            ? 'Encara no tens compte?'
-            : 'Ja tens un compte?'}
-        </p>
-
-        <button
-          type="button"
-          onClick={() => {
-            setAuthMode(authMode === 'login' ? 'register' : 'login')
-            setError('')
-          }}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: 'transparent',
-            color: '#2563eb',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          {authMode === 'login'
-            ? 'Crear un compte nou'
-            : 'Tornar a iniciar sessió'}
-        </button>
-      </form>
-    </div>
-  )
-}
-  return <div className="app-shell">
-    <aside className={`sidebar ${mobileMenu ? 'open' : ''}`}>
-      <div className="brand"><div className="brand-mark"><Database size={21}/></div><div><strong>Firestore Lab</strong><small>Entorn de proves</small></div></div>
-      <div className="nav-label">ESPAI DE TREBALL</div>
-      <nav>{nav.map(item => <button key={item.id} className={`nav-item ${activeTab === item.id ? 'selected' : ''}`} onClick={() => {setActiveTab(item.id); setMobileMenu(false)}}><item.icon size={18}/>{item.label}{item.id === 'records' && <span className="nav-count">{records.length}</span>}</button>)}</nav>
-      <div className="sidebar-bottom">
-        <div className="connection-card">
-          <div className="connection-title"><span className={`status-dot ${connection}`}></span> Connexió Firebase</div>
-          <p>{connection === 'connected' ? 'Connectat i sincronitzant' : connection === 'connecting' ? 'Connectant...' : connection === 'missing' ? 'Falta configurar Firebase' : 'No s’ha pogut connectar'}</p>
-        </div>
-        <div className="sidebar-foot"><span>Firestore Lab</span><span>v1.0.0</span></div>
-      </div>
-    </aside>
-
-    <main className="main-area">
-      <header className="topbar">
-        <button className="icon-button mobile-only" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Obrir menú"><Menu size={20}/></button>
-        <div className="breadcrumb">Espai de treball <span>/</span> <strong>{activeTab === 'dashboard' ? 'Resum' : 'Registres'}</strong></div>
-        <div className="topbar-right"><div className={`connection-pill ${connection}`}><span className="status-dot"></span>{connection === 'connected' ? 'En línia' : connection === 'connecting' ? 'Connectant' : connection === 'missing' ? 'Sense configurar' : 'Error'}</div><div style={{
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px'
-}}>
-  <span style={{ fontSize: '13px', color: '#64748b' }}>
-    {user.email}
-  </span>
-
-  <button
-    type="button"
-    onClick={handleLogout}
-    style={{
-      padding: '9px 14px',
-      border: '1px solid #cbd5e1',
-      borderRadius: '8px',
-      background: 'white',
-      cursor: 'pointer'
-    }}
-  >
-    Tancar sessió
-  </button>
-</div></div>
-      </header>
-
+  return <div className="app-shell medical-app">
+    <aside className={'sidebar '+(mobileMenu?'open':'')}><div className="brand"><div className="brand-mark"><CalendarDays size={21}/></div><div><strong>Cites mèdiques</strong><small>Gestió personal de salut</small></div></div><div className="nav-label">GESTIÓ</div><nav>{nav.map(n=><button key={n.id} className={'nav-item '+(tab===n.id?'selected':'')} onClick={()=>{setTab(n.id);setMobileMenu(false);setSearch('')}}><n.icon size={18}/>{n.label}{n.count!==undefined&&<span className="nav-count">{n.count}</span>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-card"><div className="connection-title"><span className={'status-dot '+connection}></span> Connexió Firebase</div><p>{connection==='connected'?'Dades sincronitzades':connection==='connecting'?'Connectant...':connection==='missing'?'Cal configurar Firebase':'Error de connexió'}</p></div><div className="sidebar-foot"><span>{user.email}</span><button className="logout-button" onClick={()=>signOut(auth)}><LogOut size={14}/> Sortir</button></div></div></aside>
+    <main className="main-area"><header className="topbar"><button className="icon-button mobile-only" onClick={()=>setMobileMenu(!mobileMenu)} aria-label="Menú">{mobileMenu?<X size={20}/>:<Menu size={20}/>}</button><div className="breadcrumb">Cites mèdiques <span>/</span> <strong>{(nav.find(n=>n.id===tab)||{}).label}</strong></div><div className="topbar-right"><div className={'connection-pill '+connection}><span className="status-dot"></span>{connection==='connected'?'En línia':connection==='connecting'?'Connectant':'Error'}</div><span className="user-email">{user.email}</span></div></header>
       <div className="content">
-        {!firebaseConfigured && <div className="alert warning"><ShieldAlert size={19}/><div><strong>Falta configurar Firebase</strong><p>Crea el fitxer <code>.env.local</code> a partir de <code>.env.example</code> i afegeix les dades de la teva aplicació web de Firebase.</p></div></div>}
-        {error && <div className="alert danger"><AlertCircle size={19}/><div><strong>Hi ha hagut un problema</strong><p>{error}</p></div><button className="icon-button" onClick={() => setError('')}><X size={17}/></button></div>}
-        {notice && <div className="alert success"><CheckCircle2 size={18}/>{notice}</div>}
-
-        {activeTab === 'dashboard' ? <>
-          <div className="page-heading"><div><div className="eyebrow">PANELL DE CONTROL</div><h1>Bon dia 👋</h1><p>Consulta l’estat de la connexió i l’activitat de la base de dades.</p></div><button className="primary-button" onClick={openNew} disabled={!firebaseConfigured}><Plus size={17}/> Nou registre</button></div>
-          <div className="stats-grid">
-            <Stat icon={Database} label="Total registres" value={records.length} note="Documents a Firestore"/>
-            <Stat icon={CheckCircle2} label="Registres actius" value={activeCount} note="Amb estat actiu"/>
-            <Stat icon={LayoutDashboard} label="Categories" value={categoriesCount} note="Categories utilitzades"/>
-            <div className="stat-card status-stat"><div className="stat-top"><span className="stat-icon"><Activity size={19}/></span><span className="stat-label">Estat de connexió</span></div><div className="status-value"><span className={`status-dot ${connection}`}></span>{connection === 'connected' ? 'Connectat' : connection === 'connecting' ? 'Connectant...' : connection === 'missing' ? 'Pendent' : 'Error'}</div><div className="stat-note">Sincronització en temps real</div></div>
-          </div>
-          <div className="dashboard-grid">
-            <section className="panel recent-panel"><div className="panel-heading"><div><h2>Últims registres</h2><p>Les dades més recents de Firestore</p></div><button className="text-button" onClick={() => setActiveTab('records')}>Veure tots <ExternalLink size={14}/></button></div>
-              {records.length === 0 ? <EmptyState onAdd={openNew} disabled={!firebaseConfigured}/> : <div className="recent-list">{records.slice(0,5).map(r => <div className="recent-row" key={r.id}><div className="record-avatar">{(r.nom || '?').slice(0,1).toUpperCase()}</div><div className="recent-info"><strong>{r.nom}</strong><span>{r.categoria || 'General'} · {r.data || 'Sense data'}</span></div><span className={`state-tag ${r.actiu ? 'active' : 'inactive'}`}>{r.actiu ? 'Actiu' : 'Inactiu'}</span><button className="icon-button" onClick={() => openEdit(r)} aria-label="Editar"><Pencil size={16}/></button></div>)}</div>}
-            </section>
-            <section className="panel info-panel"><div className="panel-heading"><div><h2>Proves de connexió</h2><p>Què pots comprovar amb aquesta app</p></div><span className="info-icon"><Wifi size={19}/></span></div>
-              <div className="check-list"><CheckLine text="Connexió amb el projecte Firebase" done={connection === 'connected'}/><CheckLine text="Lectura de documents de Firestore" done={connection === 'connected'}/><CheckLine text="Sincronització automàtica" done={connection === 'connected'}/><CheckLine text="Escriptura i modificació de dades" done={records.length > 0}/></div>
-              <div className="tip-box"><strong>Consell</strong><p>Obre aquesta app en dos dispositius o pestanyes. Quan modifiquis un registre en un, veuràs el canvi a l’altre automàticament.</p></div>
-            </section>
-          </div>
-        </> : <>
-          <div className="page-heading"><div><div className="eyebrow">BASE DE DADES / PROVES</div><h1>Registres</h1><p>Gestiona els documents de la col·lecció <code>proves</code>.</p></div><button className="primary-button" onClick={openNew} disabled={!firebaseConfigured}><Plus size={17}/> Nou registre</button></div>
-          <section className="panel table-panel">
-            <div className="toolbar"><div className="search-box"><Search size={17}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca registres..."/></div><div className="filter-box"><Filter size={16}/><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>{categories.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></div><span className="results-count">{filtered.length} resultats</span></div>
-            <div className="table-wrap"><table><thead><tr><th>NOM</th><th>CATEGORIA</th>
-<th>ESTAT</th>
-<th>PRIORITAT</th>
-<th>RESPONSABLE</th>
-<th>DATA INICI</th>
-<th>ACTIU</th>
-<th className="actions-head">ACCIONS</th></tr></thead><tbody>
-              {filtered.map(r => (
-  <tr key={r.id}>
-    <td>
-      <div className="table-name">
-        <div className="record-avatar small">
-          {(r.nom || '?').slice(0,1).toUpperCase()}
-        </div>
-        <div>
-          <strong>{r.nom}</strong>
-          <span>{r.descripcio || 'Sense descripció'}</span>
-        </div>
-      </div>
-    </td>
-
-    <td>
-      <span className="category-tag">{r.categoria || 'General'}</span>
-    </td>
-
-    <td>{r.estat || 'Pendent'}</td>
-
-    <td>{r.prioritat || 'Mitjana'}</td>
-
-    <td>{r.responsable || '—'}</td>
-
-    <td>{r.dataInici || r.data || '—'}</td>
-
-    <td>
-      <button
-        className={`state-tag ${r.actiu ? 'active' : 'inactive'} state-button`}
-        onClick={() => toggleActive(r)}
-      >
-        {r.actiu ? 'Actiu' : 'Inactiu'}
-      </button>
-    </td>
-
-    <td>
-      <div className="row-actions">
-        <button className="icon-button" onClick={() => openEdit(r)} title="Editar">
-          <Edit3 size={16}/>
-        </button>
-        <button className="icon-button delete-button" onClick={() => removeRecord(r)} title="Eliminar">
-          <Trash2 size={16}/>
-        </button>
-      </div>
-    </td>
-  </tr>
-))}
-</tbody>
-</table>
-
-{filtered.length === 0 && (
-  <EmptyState
-    onAdd={openNew}
-    disabled={!firebaseConfigured}
-    isFiltered={records.length > 0}
-  />
-)}
-</div>
-</section>
-        </>}
-
-    {modalOpen && (
-  <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) setModalOpen(false)}}><form className="modal" onSubmit={saveRecord}>
-      <div className="modal-head"><div><div className="eyebrow">{editing ? 'MODIFICAR DOCUMENT' : 'NOU DOCUMENT'}</div><h2>{editing ? 'Editar registre' : 'Crear registre'}</h2></div><button type="button" className="icon-button" onClick={() => setModalOpen(false)}><X size={19}/></button></div>
-      <label>Nom <span>*</span>
-  <input autoFocus required maxLength="100"
-    value={form.nom}
-    onChange={e => setForm({...form, nom:e.target.value})}
-    placeholder="Nom del registre"/>
-</label>
-
-<label>Descripció
-  <textarea rows="3" maxLength="500"
-    value={form.descripcio}
-    onChange={e => setForm({...form, descripcio:e.target.value})}
-    placeholder="Afegeix una descripció..."/>
-</label>
-
-<div className="form-row">
-  <label>Categoria
-    <input maxLength="60" value={form.categoria}
-      onChange={e => setForm({...form, categoria:e.target.value})}
-      placeholder="General"/>
-  </label>
-  <label>Estat
-    <select value={form.estat}
-      onChange={e => setForm({...form, estat:e.target.value})}>
-      <option value="Actiu">Actiu</option>
-      <option value="Pendent">Pendent</option>
-      <option value="Finalitzat">Finalitzat</option>
-    </select>
-  </label>
-</div>
-
-<div className="form-row">
-  <label>Prioritat
-    <select value={form.prioritat}
-      onChange={e => setForm({...form, prioritat:e.target.value})}>
-      <option value="Baixa">Baixa</option>
-      <option value="Mitjana">Mitjana</option>
-      <option value="Alta">Alta</option>
-    </select>
-  </label>
-  <label>Responsable
-    <input value={form.responsable}
-      onChange={e => setForm({...form, responsable:e.target.value})}
-      placeholder="Nom del responsable"/>
-  </label>
-</div>
-
-<div className="form-row">
-  <label>Data d'inici
-    <input type="date" value={form.dataInici}
-      onChange={e => setForm({...form, dataInici:e.target.value})}/>
-  </label>
-  <label>Data de finalització
-    <input type="date" value={form.dataFinal}
-      onChange={e => setForm({...form, dataFinal:e.target.value})}/>
-  </label>
-</div>
-
-<label>Observacions
-  <textarea rows="3" maxLength="1000"
-    value={form.observacions}
-    onChange={e => setForm({...form, observacions:e.target.value})}
-    placeholder="Afegeix observacions..."/>
-</label>
-      <label className="toggle-label"><span>Registre actiu</span><button type="button" className={`toggle ${form.actiu ? 'on' : ''}`} onClick={() => setForm({...form, actiu:!form.actiu})}><span/></button></label>
-      <div className="modal-actions">
-  <button
-    type="button"
-    className="secondary-button"
-    onClick={() => setModalOpen(false)}
-  >
-    Cancel·lar
-  </button>
-
-  <button
-    className="primary-button"
-    disabled={saving || !firebaseConfigured}
-  >
-    {saving ? (
-      <>
-        <LoaderCircle className="spin" size={17}/>
-        Desant...
-      </>
-    ) : (
-      <>
-        <Check size={17}/>
-        {editing ? 'Guardar canvis' : 'Crear registre'}
-      </>
-    )}
-  </button>
-</div>
-        </form>
-  </div>
-             )}
-
-      </div>
-    </main>
+        {error&&<div className="alert danger"><AlertCircle size={18}/><span>{error}</span><button className="icon-button" onClick={()=>setError('')}><X size={16}/></button></div>}{notice&&<div className="alert success"><CheckCircle2 size={18}/>{notice}</div>}
+        {tab==='dashboard'&&<><div className="page-heading"><div><div className="eyebrow">PANELL PERSONAL</div><h1>Resum de les cites</h1><p>Consulta les visites pendents i l'activitat mèdica.</p></div><button className="primary-button" onClick={()=>openAppointment(null)} disabled={!members.length}><Plus size={17}/> Nova cita</button></div><div className="stats-grid"><Stat icon={Users} label="Membres" value={members.length} note="Persones gestionades"/><Stat icon={CalendarDays} label="Properes cites" value={upcoming.length} note="Visites pendents"/><Stat icon={CheckCircle2} label="Completades" value={appointments.filter(a=>a.done).length} note="Visites realitzades"/><Stat icon={Stethoscope} label="Metges" value={doctors.length} note="Professionals guardats"/></div><section className="panel recent-panel"><div className="panel-heading"><div><h2>Properes visites</h2><p>Les cites pendents ordenades per data</p></div><button className="text-button" onClick={()=>setTab('appointments')}>Veure totes <ChevronRight size={15}/></button></div>{upcoming.length?<div className="medical-list">{upcoming.slice(0,6).map(a=><AppointmentRow key={a.id} a={a} members={members} edit={openAppointment} done={toggleDone} remove={removeAppointment}/>)}</div>:<Empty icon={CalendarDays} title="No tens cites pendents" text="Afegeix una cita per començar a organitzar les visites." action={()=>openAppointment(null)} disabled={!members.length}/>}</section></>}
+        {(tab==='appointments'||tab==='history')&&<><div className="page-heading"><div><div className="eyebrow">{tab==='history'?'REGISTRE DE VISITES':'AGENDA MÈDICA'}</div><h1>{tab==='history'?'Historial de cites':'Properes cites'}</h1><p>{tab==='history'?'Visites completades i cites anteriors.':'Totes les visites mèdiques pendents.'}</p></div><button className="primary-button" onClick={()=>openAppointment(null)} disabled={!members.length}><Plus size={17}/> Nova cita</button></div><section className="panel table-panel"><div className="toolbar"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca per metge, membre..."/></div><div className="filter-box"><Users size={15}/><select value={memberFilter} onChange={e=>setMemberFilter(e.target.value)}><option value="all">Tots els membres</option>{members.map(m=><option key={m.id} value={m.id}>{m.nom}</option>)}</select></div><span className="results-count">{shown.length} cites</span></div>{shown.length?<div className="medical-list">{shown.map(a=><AppointmentRow key={a.id} a={a} members={members} edit={openAppointment} done={toggleDone} remove={removeAppointment}/>)}</div>:<Empty icon={CalendarDays} title="No hi ha cites per mostrar" text="Prova de canviar la cerca o afegeix una nova cita." action={()=>openAppointment(null)} disabled={!members.length}/>}</section></>}
+        {tab==='members'&&<Directory title="Membres" subtitle="Persones per a les quals gestiones les visites mèdiques." icon={Users} items={members} add={()=>nameModal('member')} edit={m=>nameModal('member',m)} remove={m=>removeName('member',m)} empty="Encara no has afegit cap membre."/>}
+        {tab==='doctors'&&<Directory title="Metges" subtitle="Llista de metges i professionals sanitaris." icon={Stethoscope} items={doctors} add={()=>nameModal('doctor')} edit={m=>nameModal('doctor',m)} remove={m=>removeName('doctor',m)} empty="Encara no has afegit cap metge."/>}
+      </div></main>
+    {modal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setModal('')}}>{modal==='appointment'?<form className="modal medical-modal" onSubmit={saveAppointment}><div className="modal-head"><div><div className="eyebrow">AGENDA MÈDICA</div><h2>{editing?'Editar cita':'Nova cita mèdica'}</h2></div><button type="button" className="icon-button" onClick={()=>setModal('')}><X size={19}/></button></div><label>Membre<select required value={form.membreId} onChange={e=>setForm(f=>({...f,membreId:e.target.value}))}><option value="">Selecciona un membre</option>{members.map(m=><option key={m.id} value={m.id}>{m.nom}</option>)}</select></label><label>Metge<select required value={form.metge} onChange={e=>setForm(f=>({...f,metge:e.target.value}))}><option value="">Selecciona un metge</option>{doctors.map(d=><option key={d.id} value={d.nom}>{d.nom}</option>)}</select>{!doctors.length&&<small>Afegeix primer un metge a l'apartat Metges.</small>}</label><label>Especialitat<input value={form.esp} onChange={e=>setForm(f=>({...f,esp:e.target.value}))} placeholder="Ex. Cardiologia"/></label><div className="form-row"><label>Data<input type="date" required value={form.data} onChange={e=>setForm(f=>({...f,data:e.target.value}))}/></label><label>Hora<input type="time" required value={form.hora} onChange={e=>setForm(f=>({...f,hora:e.target.value}))}/></label></div><label>Ubicació<input value={form.ubi} onChange={e=>setForm(f=>({...f,ubi:e.target.value}))} placeholder="Centre mèdic o adreça"/></label><label>Observacions<textarea rows="3" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Informació addicional..."/></label><fieldset className="reminder-field"><legend>Recordatoris</legend>{reminders.map(r=><label className="check-option" key={r.value}><input type="checkbox" checked={form.rec.includes(r.value)} onChange={e=>setForm(f=>({...f,rec:e.target.checked?[...f.rec,r.value]:f.rec.filter(v=>v!==r.value)}))}/>{r.label}</label>)}</fieldset><div className="modal-actions"><button type="button" className="secondary-button" onClick={()=>setModal('')}>Cancel·lar</button><button className="primary-button" disabled={saving||!members.length}>{saving?'Desant...':'Desar cita'}</button></div></form>:<form className="modal name-modal" onSubmit={saveName}><div className="modal-head"><div><div className="eyebrow">GESTIÓ</div><h2>{editing?'Editar':'Afegir'} {modal==='member'?'membre':'metge'}</h2></div><button type="button" className="icon-button" onClick={()=>setModal('')}><X size={19}/></button></div><label>Nom<input autoFocus value={name} onChange={e=>setName(e.target.value)} required placeholder="Escriu el nom"/></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={()=>setModal('')}>Cancel·lar</button><button className="primary-button" disabled={saving}>{saving?'Desant...':'Desar'}</button></div></form>}</div>}
   </div>
 }
 
-function Stat({icon: Icon, label, value, note}) {
-  return <div className="stat-card">
-    <div className="stat-top">
-      <span className="stat-icon"><Icon size={19}/></span>
-      <span className="stat-label">{label}</span>
-    </div>
-    <div className="stat-value">{value}</div>
-    <div className="stat-note">{note}</div>
-  </div>
-}
-
-
-function CheckLine({text, done}) { return <div className="check-line"><span className={`check-circle ${done ? 'done' : ''}`}>{done && <Check size={12}/>}</span>{text}</div> }
-function EmptyState({onAdd, disabled, isFiltered}) {
-  return <div className="empty-state"><div className="empty-icon"><Database size={25}/></div><h3>{isFiltered ? 'No hi ha resultats' : 'Encara no hi ha registres'}</h3><p>{isFiltered ? 'Prova de canviar els filtres de cerca.' : 'Crea el primer registre per comprovar que Firebase funciona correctament.'}</p>{!isFiltered && <button className="primary-button" onClick={onAdd} disabled={disabled}><Plus size={16}/> Crear primer registre</button>}</div>
-}
+function Stat({icon:Icon,label,value,note}){return <div className="stat-card"><div className="stat-top"><span className="stat-icon"><Icon size={19}/></span><span className="stat-label">{label}</span></div><div className="stat-value">{value}</div><div className="stat-note">{note}</div></div>}
+function Empty({icon:Icon,title,text,action,disabled}){return <div className="empty-state"><div className="empty-icon"><Icon size={22}/></div><h3>{title}</h3><p>{text}</p><button className="primary-button" onClick={action} disabled={disabled}><Plus size={15}/> Afegir</button></div>}
+function Directory({title,subtitle,icon:Icon,items,add,edit,remove,empty}){return <><div className="page-heading"><div><div className="eyebrow">GESTIÓ DE DADES</div><h1>{title}</h1><p>{subtitle}</p></div><button className="primary-button" onClick={add}><Plus size={17}/> Afegir {title==='Metges'?'metge':'membre'}</button></div><section className="panel directory-panel">{items.length?items.map(item=><div className="directory-row" key={item.id}><div className="directory-avatar"><Icon size={18}/></div><strong>{item.nom}</strong><div className="row-actions"><button className="icon-button" onClick={()=>edit(item)} aria-label="Editar"><Pencil size={16}/></button><button className="icon-button delete-button" onClick={()=>remove(item)} aria-label="Eliminar"><Trash2 size={16}/></button></div></div>):<div className="empty-state"><div className="empty-icon"><Icon size={22}/></div><h3>{empty}</h3><p>Pots afegir registres amb el botó superior.</p></div>}</section></>}
+function AppointmentRow({a,members,edit,done,remove}){const member=a.membreNom||(members.find(m=>m.id===a.membreId)||{}).nom||'Membre eliminat';return <article className={'appointment-row '+(a.done?'completed':'')}><div className="appointment-date"><strong>{new Date(a.data+'T12:00:00').getDate()}</strong><span>{new Date(a.data+'T12:00:00').toLocaleDateString('ca-ES',{month:'short'})}</span></div><div className="appointment-info"><strong>{a.metge}</strong><span>{member}{a.esp?' · '+a.esp:''}</span><small><Clock size={13}/> {a.hora} {a.ubi?<><MapPin size={13}/> {a.ubi}</>:null}</small>{a.notes&&<p>{a.notes}</p>}</div><div className="appointment-actions"><button className="icon-button" onClick={()=>openGoogleCalendar(a)} title="Afegir a Google Calendar"><ExternalLink size={16}/></button><button className="icon-button" onClick={()=>exportICS(a)} title="Descarregar calendari"><Download size={16}/></button><button className="icon-button" onClick={()=>edit(a)} title="Editar"><Pencil size={16}/></button><button className="icon-button" onClick={()=>done(a)} title={a.done?'Reobrir':'Marcar completada'}><CheckCircle2 size={17}/></button><button className="icon-button delete-button" onClick={()=>remove(a)} title="Eliminar"><Trash2 size={16}/></button></div></article>}
