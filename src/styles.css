@@ -146,3 +146,17 @@ tbody tr:hover{background:#f8fbff}
  .clear-filters{flex:1}
  .advanced-toolbar .results-count{align-self:center;margin-left:auto}
 }
+
+
+/* Còpia de seguretat */
+.backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.backup-card{display:flex;flex-direction:column;align-items:flex-start;min-height:285px}
+.backup-icon{width:44px;height:44px;border-radius:12px;background:#edf4ff;color:#2864df;display:grid;place-items:center;margin-bottom:15px}
+.backup-card h2{font:750 16px Manrope,sans-serif;color:#172b4d;margin:0 0 8px}
+.backup-card p{font-size:12px;line-height:1.65;color:#667085;margin:0 0 18px;max-width:460px}
+.backup-counts{display:flex;flex-wrap:wrap;gap:18px;margin:0 0 20px;color:#667085;font-size:11px}
+.backup-counts strong{color:#253858;font-size:16px;margin-right:4px}
+.backup-card .primary-button,.backup-card .secondary-button{margin-top:auto}
+.backup-file-input{display:none}
+.backup-note{font-size:10px;line-height:1.5;color:#98a2b3;margin-top:13px}
+@media(max-width:700px){.backup-grid{grid-template-columns:1fr}.backup-card{min-height:0}.backup-card .primary-button,.backup-card .secondary-button{margin-top:8px}}
