@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Firestore Lab',
-        short_name: 'Firestore Lab',
-        description: 'Aplicació de proves amb Firebase Firestore',
+        name: 'Cites mèdiques',
+        short_name: 'Cites mèdiques',
+        description: 'Aplicació personal per gestionar cites mèdiques.',
         theme_color: '#101828',
         background_color: '#f5f7fb',
         display: 'standalone',
