@@ -70,7 +70,7 @@ export default function App() {
           const key='cites-notification-'+a.id+'-'+a.data+'-'+(a.hora||'09:00')
           if(now>=reminderTime&&now<appointmentTime&&localStorage.getItem(key)!=='sent'){
             const member=a.membreNom||(members.find(m=>m.id===a.membreId)||{}).nom||'Membre'
-            await registration.showNotification('Recordatori de cita mèdica',{body:'Demà a les '+(a.hora||'09:00')+' · '+member+' · '+a.metge+(a.esp?' · '+a.esp:''),icon:'/pwa-192.svg',badge:'/pwa-192.svg',tag:key})
+            await registration.showNotification('Recordatori de cita mèdica',{body:new Date(a.data+'T12:00:00').toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long'})+' a les '+(a.hora||'09:00')+' · '+member+' · '+a.metge+(a.esp?' · '+a.esp:''),icon:'/pwa-192.svg',badge:'/pwa-192.svg',tag:key})
             localStorage.setItem(key,'sent')
           }
         }
