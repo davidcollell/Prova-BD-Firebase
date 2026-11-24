@@ -183,3 +183,57 @@ tbody tr:hover{background:#f8fbff}
 .specialty-setting-row select{min-width:125px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;padding:8px 10px;color:#344054;font-size:12px}
 .specialty-settings-note{margin:15px 2px 0;color:#7b8798;font-size:11px;line-height:1.5}
 @media(max-width:700px){.specialty-settings{padding:6px 14px 13px}.specialty-setting-row{gap:8px}.specialty-setting-row select{min-width:112px;max-width:125px}}
+
+
+/* Tema fosc seleccionable */
+.theme-switch{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid #e4e7ec;border-radius:9px;background:#f2f4f7}
+.theme-switch button{display:flex;align-items:center;gap:5px;padding:7px 9px;border:0;border-radius:6px;background:transparent;color:#667085;font-size:11px;font-weight:700}
+.theme-switch button.active{background:#fff;color:#1d4ed8;box-shadow:0 1px 3px #10182818}
+@media(max-width:700px){.theme-switch button{padding:7px}.theme-switch button span{display:none}.topbar-right{gap:6px}}
+:root[data-theme="dark"]{color-scheme:dark;background:#111827;color:#e5e7eb}
+:root[data-theme="dark"] body{background:#111827;color:#e5e7eb}
+:root[data-theme="dark"] .app-shell{background:#111827;color:#e5e7eb}
+:root[data-theme="dark"] .topbar{background:#182334;border-color:#344256}
+:root[data-theme="dark"] .breadcrumb,:root[data-theme="dark"] .breadcrumb strong{color:#d5deea}
+:root[data-theme="dark"] .connection-pill{background:#263449;color:#cbd5e1}
+:root[data-theme="dark"] .content{color:#e5e7eb}
+:root[data-theme="dark"] .page-heading h1,:root[data-theme="dark"] .panel-heading h2,:root[data-theme="dark"] .stat-value,:root[data-theme="dark"] .appointment-info strong,:root[data-theme="dark"] .directory-row strong,:root[data-theme="dark"] .specialty-setting-name strong,:root[data-theme="dark"] .backup-card h2{color:#edf2f7}
+:root[data-theme="dark"] .page-heading p,:root[data-theme="dark"] .panel-heading p,:root[data-theme="dark"] .stat-label,:root[data-theme="dark"] .stat-note,:root[data-theme="dark"] .appointment-info>span,:root[data-theme="dark"] .appointment-info small,:root[data-theme="dark"] .appointment-info p,:root[data-theme="dark"] .backup-card p,:root[data-theme="dark"] .specialty-settings-note,:root[data-theme="dark"] .results-count{color:#a8b4c5}
+:root[data-theme="dark"] .panel,:root[data-theme="dark"] .stat-card,:root[data-theme="dark"] .auth-card,:root[data-theme="dark"] .modal{background:#1c293a;border-color:#344256;color:#e5e7eb}
+:root[data-theme="dark"] .appointment-row,:root[data-theme="dark"] .directory-row,:root[data-theme="dark"] .specialty-setting-row{border-color:#344256}
+:root[data-theme="dark"] .appointment-date,:root[data-theme="dark"] .stat-icon,:root[data-theme="dark"] .directory-avatar,:root[data-theme="dark"] .backup-icon,:root[data-theme="dark"] .empty-icon{background:#263c5b;color:#9fc5ff}
+:root[data-theme="dark"] .topbar .icon-button,:root[data-theme="dark"] .icon-button{color:#aab8ca}
+:root[data-theme="dark"] .icon-button:hover{background:#2b3a50;color:#e8f1ff}
+:root[data-theme="dark"] .toolbar,:root[data-theme="dark"] th{background:#202f43;border-color:#344256}
+:root[data-theme="dark"] td{color:#c1ccda;border-color:#344256}
+:root[data-theme="dark"] tbody tr:hover{background:#24344a}
+:root[data-theme="dark"] .search-box,:root[data-theme="dark"] .filter-box,:root[data-theme="dark"] .date-filter input,:root[data-theme="dark"] .specialty-setting-row select,:root[data-theme="dark"] .clear-filters{background:#172436;border-color:#46566d;color:#d7e0ec}
+:root[data-theme="dark"] .search-box input,:root[data-theme="dark"] .filter-box select,:root[data-theme="dark"] .date-filter input{color:#e5e7eb;background:transparent}
+:root[data-theme="dark"] .search-box input::placeholder{color:#8190a5}
+:root[data-theme="dark"] .secondary-button{background:#2b3a50;border:1px solid #46566d;color:#dce5f0}
+:root[data-theme="dark"] .text-button{color:#8db8ff}
+:root[data-theme="dark"] .calendar-day{background:#1c293a;border-color:#344256;color:#e5e7eb}
+:root[data-theme="dark"] .calendar-day.outside-month{background:#172334;color:#718096}
+:root[data-theme="dark"] .calendar-day.is-selected{background:#233d60;border-color:#6ea8ff}
+:root[data-theme="dark"] .calendar-day:hover{background:#263a54;border-color:#6ea8ff}
+:root[data-theme="dark"] .calendar-week-label,:root[data-theme="dark"] .calendar-week-no-appointments,:root[data-theme="dark"] .calendar-legend{color:#a8b4c5}
+:root[data-theme="dark"] .calendar-view-switch,:root[data-theme="dark"] .theme-switch{background:#172436;border-color:#46566d}
+:root[data-theme="dark"] .calendar-view-switch button,:root[data-theme="dark"] .theme-switch button{color:#b8c4d4}
+:root[data-theme="dark"] .calendar-view-switch button.active,:root[data-theme="dark"] .theme-switch button.active{background:#344761;color:#fff}
+:root[data-theme="dark"] .calendar-selected-panel .panel-heading h2{color:#edf2f7}
+:root[data-theme="dark"] .calendar-empty,:root[data-theme="dark"] .reminder-empty{color:#a8b4c5}
+:root[data-theme="dark"] .calendar-empty strong{color:#e5e7eb}
+:root[data-theme="dark"] .specialty-settings-note,:root[data-theme="dark"] .backup-note{color:#9eacbf}
+:root[data-theme="dark"] .auth-screen{background:linear-gradient(135deg,#111827,#1c293a)}
+:root[data-theme="dark"] .auth-card h1,:root[data-theme="dark"] .modal-head h2{color:#edf2f7}
+:root[data-theme="dark"] .auth-card p,:root[data-theme="dark"] .modal label{color:#c1ccda}
+:root[data-theme="dark"] .auth-card input,:root[data-theme="dark"] .medical-modal input,:root[data-theme="dark"] .medical-modal select,:root[data-theme="dark"] .medical-modal textarea,:root[data-theme="dark"] .name-modal input{background:#172436;border-color:#46566d;color:#e5e7eb}
+:root[data-theme="dark"] .reminder-field{border-color:#344256}
+:root[data-theme="dark"] .reminder-field legend,:root[data-theme="dark"] .check-option{color:#c1ccda}
+:root[data-theme="dark"] .modal-actions{border-color:#344256}
+:root[data-theme="dark"] .loading-screen{background:#111827;color:#c1ccda}
+:root[data-theme="dark"] .reminder-total{background:#263c5b;color:#9fc5ff}
+:root[data-theme="dark"] .alert.success{background:#123629;color:#9ce0bc;border-color:#205b43}
+:root[data-theme="dark"] .alert.danger{background:#431f26;color:#ffb4b0;border-color:#73343b}
+:root[data-theme="dark"] .empty-state h3{color:#e5e7eb}
+:root[data-theme="dark"] .empty-state p{color:#a8b4c5}
