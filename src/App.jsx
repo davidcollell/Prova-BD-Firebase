@@ -39,6 +39,7 @@ export default function App() {
   const [modal,setModal]=useState(''), [editing,setEditing]=useState(null), [name,setName]=useState(''), [form,setForm]=useState(emptyAppointment), [saving,setSaving]=useState(false)
   const [backupBusy,setBackupBusy]=useState(false)
   const [theme,setTheme]=useState(()=>localStorage.getItem('cites-theme')==='dark'?'dark':'light')
+  const [settingsLoaded,setSettingsLoaded]=useState(false)
   const [notificationEnabled,setNotificationEnabled]=useState(()=>localStorage.getItem('cites-notifications-enabled')==='true')
   const [notificationPermission,setNotificationPermission]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported')
   const [specialtyColors,setSpecialtyColors]=useState(()=>{try{return JSON.parse(localStorage.getItem('cites-specialty-colors')||'{}')}catch{return {}}})
@@ -54,6 +55,25 @@ export default function App() {
     if(!firebaseConfigured||!auth){setAuthLoading(false);return}
     return onAuthStateChanged(auth,u=>{setUser(u);setAuthLoading(false)})
   },[])
+  useEffect(()=>{
+    if(!user||!db){setSettingsLoaded(false);return}
+    setSettingsLoaded(false)
+    const settingsRef=doc(db,'configuracio',user.uid)
+    return onSnapshot(settingsRef,snapshot=>{
+      if(snapshot.exists()){
+        const settings=snapshot.data()
+        if(settings.theme==='light'||settings.theme==='dark')setTheme(settings.theme)
+        if(settings.specialtyColors&&typeof settings.specialtyColors==='object'&&!Array.isArray(settings.specialtyColors))setSpecialtyColors(settings.specialtyColors)
+      }
+      setSettingsLoaded(true)
+    },e=>{setSettingsLoaded(false);setError(e.code==='permission-denied'?'Cal actualitzar les regles de Firestore per sincronitzar les preferències.':e.message)})
+  },[user])
+
+  useEffect(()=>{
+    if(!user||!db||!settingsLoaded)return
+    setDoc(doc(db,'configuracio',user.uid),{propietari:user.uid,theme,specialtyColors,actualitzatEl:serverTimestamp()},{merge:true}).catch(e=>setError('No s’han pogut sincronitzar les preferències: '+e.message))
+  },[user,settingsLoaded,theme,specialtyColors])
+
   useEffect(()=> {
     if(!user||!db){setMembers([]);setDoctors([]);setAppointments([]);setConnection(firebaseConfigured?'connecting':'missing');return}
     setConnection('connecting'); let ready=0
